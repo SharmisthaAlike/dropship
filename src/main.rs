@@ -9,7 +9,11 @@ use tokio::net::{TcpListener, TcpStream};
 use tracing::{info, warn};
 
 #[derive(Debug, Parser)]
-#[command(name = "dropship", version, about = "Peer-to-peer file transfer over TCP")]
+#[command(
+    name = "dropship",
+    version,
+    about = "Peer-to-peer file transfer over TCP"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -23,10 +27,7 @@ enum Command {
         port: u16,
     },
     /// Connect to a peer and perform the initial protocol handshake.
-    Send {
-        path: PathBuf,
-        address: String,
-    },
+    Send { path: PathBuf, address: String },
 }
 
 #[tokio::main]
@@ -59,10 +60,13 @@ async fn listen(port: u16) -> Result<()> {
 async fn handle_peer(mut stream: TcpStream) -> Result<()> {
     let message = read_message(&mut stream).await?;
     info!(?message, "received protocol message");
-    write_message(&mut stream, &Message::Hello(protocol::Hello {
-        protocol_version: ProtocolVersion::CURRENT,
-        peer_id: "listener".to_owned(),
-    }))
+    write_message(
+        &mut stream,
+        &Message::Hello(protocol::Hello {
+            protocol_version: ProtocolVersion::CURRENT,
+            peer_id: "listener".to_owned(),
+        }),
+    )
     .await?;
     Ok(())
 }

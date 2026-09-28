@@ -64,7 +64,7 @@ mod tests {
 
     #[tokio::test]
     async fn frames_messages_over_a_stream() {
-        let (mut writer, mut reader) = tokio::io::duplex(128);
+        let (mut writer, mut reader) = tokio::io::duplex(1024);
         let expected = Message::Hello(Hello {
             protocol_version: ProtocolVersion::CURRENT,
             peer_id: "test-peer".to_owned(),
@@ -72,5 +72,14 @@ mod tests {
 
         write_message(&mut writer, &expected).await.unwrap();
         assert_eq!(read_message(&mut reader).await.unwrap(), expected);
+    }
+
+    #[tokio::test]
+    async fn rejects_zero_length_frames() {
+        let (mut writer, mut reader) = tokio::io::duplex(8);
+        writer.write_u32(0).await.unwrap();
+
+        let error = read_message(&mut reader).await.unwrap_err();
+        assert!(error.to_string().contains("invalid frame length: 0"));
     }
 }
