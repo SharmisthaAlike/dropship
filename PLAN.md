@@ -266,12 +266,12 @@ chunk 4 → 0.5 MiB
 
 ## Tasks
 
-- [ ] Implement chunk iterator
-- [ ] Generate chunk IDs
-- [ ] Calculate chunk hashes
-- [ ] Calculate complete file hash
-- [ ] Stream chunks rather than loading entire file
-- [ ] Handle very large files
+- [x] Implement chunk iterator
+- [x] Generate chunk IDs
+- [x] Calculate chunk hashes
+- [x] Calculate complete file hash
+- [x] Stream chunks rather than loading entire file
+- [x] Handle very large files
 
 ### Success criteria
 
