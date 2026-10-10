@@ -1,10 +1,8 @@
-mod protocol;
-
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use protocol::{read_message, write_message, Message, ProtocolVersion};
+use dropship::protocol::{read_message, write_message, Hello, Message, ProtocolVersion};
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{info, warn};
 
@@ -62,7 +60,7 @@ async fn handle_peer(mut stream: TcpStream) -> Result<()> {
     info!(?message, "received protocol message");
     write_message(
         &mut stream,
-        &Message::Hello(protocol::Hello {
+        &Message::Hello(Hello {
             protocol_version: ProtocolVersion::CURRENT,
             peer_id: "listener".to_owned(),
         }),
@@ -73,7 +71,7 @@ async fn handle_peer(mut stream: TcpStream) -> Result<()> {
 
 async fn send(path: PathBuf, address: &str) -> Result<()> {
     let mut stream = TcpStream::connect(address).await?;
-    let message = Message::Hello(protocol::Hello {
+    let message = Message::Hello(Hello {
         protocol_version: ProtocolVersion::CURRENT,
         peer_id: "sender".to_owned(),
     });
