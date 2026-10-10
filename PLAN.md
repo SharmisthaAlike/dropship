@@ -230,9 +230,9 @@ CHUNK_DATA
 - [x] Serialize with Serde
 - [x] Implement message framing
 - [x] Add protocol version
-- [ ] Add transfer IDs
-- [ ] Handle malformed messages
-- [ ] Handle unsupported protocol versions
+- [x] Add transfer IDs
+- [x] Handle malformed messages
+- [x] Handle unsupported protocol versions
 
 ### Important
 

@@ -21,9 +21,69 @@ pub struct Hello {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FileInfo {
+    pub transfer_id: String,
+    pub filename: String,
+    pub file_size: u64,
+    pub chunk_size: u64,
+    pub total_chunks: u64,
+    pub file_hash: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ChunkRequest {
+    pub transfer_id: String,
+    pub chunk_id: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ChunkData {
+    pub transfer_id: String,
+    pub chunk_id: u64,
+    pub chunk_hash: String,
+    pub payload: Vec<u8>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ChunkAck {
+    pub transfer_id: String,
+    pub chunk_id: u64,
+    pub accepted: bool,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TransferStatus {
+    pub transfer_id: String,
+    pub status: String,
+    pub completed_chunks: u64,
+    pub total_chunks: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TransferComplete {
+    pub transfer_id: String,
+    pub file_hash: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TransferError {
+    pub transfer_id: String,
+    pub code: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", content = "payload")]
 pub enum Message {
     Hello(Hello),
+    FileInfo(FileInfo),
+    ChunkRequest(ChunkRequest),
+    ChunkData(ChunkData),
+    ChunkAck(ChunkAck),
+    TransferStatus(TransferStatus),
+    TransferComplete(TransferComplete),
+    TransferError(TransferError),
 }
 
 pub async fn read_message<R>(reader: &mut R) -> Result<Message>
@@ -68,6 +128,22 @@ mod tests {
         let expected = Message::Hello(Hello {
             protocol_version: ProtocolVersion::CURRENT,
             peer_id: "test-peer".to_owned(),
+        });
+
+        write_message(&mut writer, &expected).await.unwrap();
+        assert_eq!(read_message(&mut reader).await.unwrap(), expected);
+    }
+
+    #[tokio::test]
+    async fn frames_file_info_messages_over_a_stream() {
+        let (mut writer, mut reader) = tokio::io::duplex(2048);
+        let expected = Message::FileInfo(FileInfo {
+            transfer_id: "transfer-42".to_owned(),
+            filename: "movie.mp4".to_owned(),
+            file_size: 1048576,
+            chunk_size: 65536,
+            total_chunks: 16,
+            file_hash: "abc123".to_owned(),
         });
 
         write_message(&mut writer, &expected).await.unwrap();
