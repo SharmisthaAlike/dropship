@@ -880,3 +880,193 @@ dropship/
                                            ▼
                                       Verification
 ```
+
+---
+
+# 19. Desktop Frontend
+
+A desktop frontend is recommended once the core transfer engine and protocol are stable. It should improve usability without moving networking, chunking, encryption, storage, or recovery logic out of Rust.
+
+The CLI and GUI should be two interfaces over the same Rust transfer library.
+
+## Recommended stack
+
+- **Tauri 2** — lightweight desktop shell and Rust integration
+- **React** — component-based UI
+- **TypeScript** — type-safe frontend/backend contracts
+- **Vite** — fast frontend development and static production builds
+- **Tailwind CSS** — utility-first styling
+- **shadcn/ui** — reusable UI components
+- **Zustand** — local peer and transfer state
+- **Serde** — shared data models between Rust and the frontend
+- **Tauri commands and events** — frontend/backend communication
+
+Do not introduce Electron unless its ecosystem is specifically required. Do not use Next.js for the desktop client; server-side rendering is unnecessary for a local Tauri application.
+
+## Frontend architecture
+
+```text
+┌──────────────────────────────┐
+│ React + TypeScript frontend  │
+│                              │
+│ Dashboard                   │
+│ Peer discovery              │
+│ Send / receive dialogs      │
+│ Transfer progress           │
+│ History and settings        │
+└──────────────┬───────────────┘
+               │ Tauri commands/events
+┌──────────────▼───────────────┐
+│ Rust application layer       │
+│                              │
+│ Transfer manager             │
+│ Connection manager           │
+│ Discovery                   │
+│ Chunking                    │
+│ Encryption                  │
+│ Manifest/resume state        │
+│ Storage                     │
+└──────────────┬───────────────┘
+               │
+        TCP initially
+        QUIC later
+```
+
+## Backend API boundary
+
+Expose high-level operations from the Rust application layer:
+
+```text
+discover_peers()
+start_send(path, peer_id)
+start_receive(transfer_id, destination)
+pause_transfer(transfer_id)
+resume_transfer(transfer_id)
+cancel_transfer(transfer_id)
+get_transfer_status(transfer_id)
+```
+
+Emit events for asynchronous activity:
+
+```text
+peer_discovered
+peer_expired
+transfer_started
+transfer_progress
+chunk_verified
+transfer_paused
+transfer_resumed
+transfer_failed
+transfer_completed
+```
+
+The frontend must not implement transfer protocol logic or communicate directly with TCP peers.
+
+## Recommended UI screens
+
+1. **Dashboard**
+   - Active transfers
+   - Current speed
+   - ETA
+   - Completed and failed transfers
+
+2. **Peers**
+   - Discovered peers
+   - Peer names, IDs, addresses, and availability
+   - Discovery/refresh control
+
+3. **Send**
+   - File picker
+   - Drag-and-drop area
+   - Peer selection
+   - Transfer confirmation
+
+4. **Receive**
+   - Incoming transfer approval
+   - Destination folder selection
+   - Filename and file-size information
+
+5. **Transfer details**
+   - Chunk progress
+   - Retry count
+   - Connection state
+   - Verification status
+   - Pause, resume, and cancel controls
+
+6. **Settings**
+   - Listening port
+   - Download directory
+   - Maximum parallel workers
+   - Discovery settings
+   - Peer identity/encryption settings
+
+## Frontend implementation phases
+
+### Phase 1 — Stable Rust API
+
+Before building the GUI, make transfer functionality callable independently of the CLI:
+
+```rust
+TransferManager::send(...)
+TransferManager::receive(...)
+TransferManager::pause(...)
+TransferManager::resume(...)
+TransferManager::status(...)
+```
+
+Both the CLI and Tauri should depend on this shared application layer.
+
+### Phase 2 — Minimal desktop client
+
+Build only:
+
+- peer list
+- file picker
+- send action
+- transfer progress
+- completion and error states
+
+### Phase 3 — Advanced desktop features
+
+Add:
+
+- resume controls
+- multiple simultaneous transfers
+- notifications
+- transfer history
+- benchmark charts
+- settings
+- system tray integration
+
+## Frontend success criteria
+
+- GUI operations produce the same transfer behavior as equivalent CLI operations.
+- Transfers continue safely when the UI is minimized or reopened.
+- Progress is event-driven and does not require polling the network directly.
+- The frontend cannot bypass path validation, encryption, integrity checks, or authorization enforced by Rust.
+- The CLI remains fully usable for automation, debugging, and headless environments.
+
+## Project structure additions
+
+When the frontend is introduced, extend the repository with:
+
+```text
+dropship/
+├── src/                    # Rust core and Tauri commands
+├── src-tauri/              # Tauri application configuration, if separated
+│   ├── tauri.conf.json
+│   └── capabilities/
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── stores/
+│   │   ├── lib/
+│   │   └── types/
+│   └── public/
+└── tests/
+```
+
+The frontend should be developed after Milestones 1–4 provide reliable framing, metadata exchange, chunk transfer, verification, and error reporting. Resumability and connection recovery should remain Rust responsibilities and should be integrated before declaring the desktop client production-ready.
